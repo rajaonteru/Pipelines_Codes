@@ -1,0 +1,50 @@
+# ASP.NET
+# Build and test ASP.NET projects.
+# Add steps that publish symbols, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
+
+trigger:
+- none
+
+#pool: XXXXX
+pool:
+  Name: "Default"
+  vmImage: ubuntu-latest
+
+variables:
+  - name: NODE_EXTRA_CA_CERTS
+    value: /tmp/XX-bundle.pem
+
+# schedules:
+# - cron: "0 0 * * *"                    ####Minutes Hours Days Month Dayofmonth
+#   displayName: Daily midnight build
+#   branches:
+#     include:
+#     - Release
+#   always: true
+
+steps:
+- checkout: Self               
+  timeoutInMinutes: 30
+  fetchTags: false
+  fetchDepth: 1
+
+# - script: |
+#     echo "Installing Snyk..."
+#     npm install -g snyk
+#     touch .snyk
+#     echo "Authenticating to Snyk..."
+#     snyk auth $(SNYK_TOKEN)
+#     echo "Ignoring Handson table"
+#     snyk ignore --file-path='handss.js' 
+#     cat .snyk
+#   displayName: 'Install, Authenticate, and Ignore Vulnerability with Snyk'
+
+- task: SnykSecurityScan@1
+  inputs:
+    serviceConnectionEndpoint: 'Snyk_Svc_Connection'  ###[Azure DevOps service connection]
+    testType: 'code'
+    monitorWhen: always
+    codeSeverityThreshold: 'high'
+    failOnIssues: false
+    projectName: 'XXXXXX/PatientServices-XXX'
