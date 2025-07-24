@@ -1,0 +1,55 @@
+trigger:
+- none
+
+pool:
+  #vmImage: 'windows-2019'
+  name: XXXXXXX
+  
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- powershell: 'choco install netfx-4.8-devpack -y'
+  displayName: 'Install .Net 4.8'
+
+- task: NuGetToolInstaller@1
+  displayName: 'Use NuGet 4.4.1'
+  inputs:
+    versionSpec: 4.4.1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore'
+  inputs:
+    restoreSolution: XXXX/XXX.sln
+
+- task: MSBuild@1
+  displayName: 'Build Solution'
+  inputs:
+    solution: XX/XXX/XXXXX.csproj
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+    msbuildArguments: '/p:OutputPath="$(System.DefaultWorkingDirectory)/Job"'
+    clean: true
+
+- task: CopyFiles@2
+  displayName: 'Copy Build Files'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)/Job'
+    TargetFolder: '$(build.artifactstagingdirectory)'
+
+- task: CopyFiles@2
+  displayName: 'Copy Config Files'
+  inputs:
+    SourceFolder: XX/XXX
+    Contents: |
+      App_*
+      App.*
+    TargetFolder: '$(build.artifactstagingdirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: XXXXXXXXXXXXXX-Job-Build'
+  inputs:
+    ArtifactName: 'XXXXXXXXXXXXXX-Job-Build'
