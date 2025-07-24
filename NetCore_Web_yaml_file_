@@ -1,0 +1,79 @@
+trigger: none
+
+pool:
+  name: XX-XXX-XX
+
+resources:
+  repositories:
+  - repository: self
+    type: git
+
+stages:
+  - stage: Build
+    displayName: Build
+    jobs:
+      - job: Build_Job
+        displayName: Build_Job
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            fetchTags: false
+
+          - task: UseDotNet@2
+            displayName: 'Use .NET Core sdk 8.0.x'
+            inputs:
+              version: 8.0.x
+
+          - task: DotNetCoreCLI@2
+            displayName: Restore
+            inputs:
+              command: restore
+              projects: 'XX/XX/XX/XX/XXXX/XXXXXXX.csproj'
+              verbosityRestore: Detailed
+              verbosityPack: Detailed
+              
+          - task: SonarQubePrepare@7
+            displayName: 'Prepare analysis on SonarQube'
+            inputs:
+              SonarQube: ServiceConnection
+              projectKey: 'PatientServices-XX'
+              projectName: 'PatientServices-XX'
+              extraProperties: |
+                sonar.branch.name = $(Build.SourceBranchName)
+            continueOnError: true
+            enabled: false
+
+          - task: DotNetCoreCLI@2
+            displayName: Build
+            inputs:
+              projects: 'XX/XX/XX/XX/XXXX/XXXXXXX.csproj'
+              arguments: '--configuration $(BuildConfiguration)'
+              verbosityRestore: Detailed
+              verbosityPack: Detailed
+
+          - task: DotNetCoreCLI@2
+            displayName: Publish
+            inputs:
+              command: publish
+              publishWebProjects: false
+              projects: 'XX/XX/XX/XX/XXXX'
+              arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
+              zipAfterPublish: false
+              modifyOutputPath: false
+              verbosityRestore: Detailed
+              verbosityPack: Detailed
+
+          - task: SonarQubeAnalyze@7
+            displayName: 'Run Code Analysis'
+            enabled: false
+
+          - task: SonarQubePublish@7
+            displayName: 'Publish Quality Gate Result'
+            enabled: false
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Artifact: XXXXXX-DotNet-Core-Instance3-CD'
+            inputs:
+              PathtoPublish: '$(build.artifactstagingdirectory)'
+              ArtifactName: 'XXXXXX-DotNet-Core-Instance3-CD'
+            condition: succeededOrFailed()
