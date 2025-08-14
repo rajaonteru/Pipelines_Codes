@@ -1,0 +1,136 @@
+trigger: none
+  # branches:
+  #   include:
+  #     - XXXX_dev
+
+pool:
+  vmImage: 'ubuntu latest'
+  demands:
+  - java
+  - JDK
+
+resources:
+ repositories:
+   - repository: Templates
+     type: git
+     name: Templates 
+     ref: refs/heads/master
+
+variables:
+  JAVA_HOME_11_X64: '/usr/lib/jvm/java-17-openjdk-amd64/'
+  JAVA_HOME: '/usr/lib/jvm/java-11-openjdk-amd64/'
+  Alias: 'SSS'
+  Keypassword: '333333'
+  secure: 'jkl'
+  Branch: $(Build.SourceBranchName)
+  group: Snyk Bypass Settings
+
+steps:
+#- checkout: git://XXX/XX-XX-Android@$(Branch)
+- checkout: self
+  timeoutInMinutes: 30
+  fetchTags: false
+  fetchDepth: 1
+
+- template: Snyk/xx-scan.yaml@Templates
+  parameters:
+    snykServiceConnection: 'SNYK-xxxx'
+    applicationId: "VVV12345"
+
+- script: |
+   echo "******************JDK 17 installation started******************"
+   readlink -f $(which java) 
+   which java
+   java -version
+   
+    echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
+    echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
+   
+   sudo apt-get update && sudo apt-get upgrade
+   sudo apt-get install openjdk-17-jdk
+   
+   echo "******************Installed JDK 17******************"
+   
+  displayName: 'JDK 17 installation'
+  enabled: true
+
+- task: Gradle@3
+  displayName: 'gradlew assembleEnvQARelease'
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    tasks: assembleEnvQARelease
+    publishJUnitResults: false
+    jdkVersionOption: 1.11
+  enabled: true
+
+- task: AndroidSigning@3
+  displayName: 'Signing and aligning APK file(s) **/*.apk'
+  inputs:
+    apksignerKeystoreFile: 'xxxxxxxxxxxx'
+    apksignerKeystorePassword: '$(Keypassword)'
+    apksignerKeystoreAlias: '$(Alias)'
+    apksignerKeyPassword: '$(Keypassword)'
+  enabled: true
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+  inputs:
+    SourceFolder: '$(system.defaultworkingdirectory)'
+    Contents: |
+     **/*.apk
+     **/ccc.txt
+     **/changeLog.txt
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  condition: succeededOrFailed()
+
+- powershell: |
+   $PAT = "xxxxxxxxxxxxxxx"
+   $Organization = "ccccccccccc"
+   $AzureDevOpsAuthenicationHeader = @{Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($PAT)")) }
+   $UriOrganization = "https://dev.azure.com/$($Organization)/"
+   $uriProject = $UriOrganization + "_apis/projects?`$top=10"
+   $uriReleases = "https://dev.azure.com/$($Organization)/"
+   
+   $ProjectsResult = Invoke-RestMethod -Uri $uriProject -Method get -Headers $AzureDevOpsAuthenicationHeader
+   
+   foreach ($project1 in $ProjectsResult){  
+       $project = $project1.value
+   
+       if($project.name.Contains("cccccc")){
+     	 $uriRepos = $uriReleases + "$($project.id)/_apis/git/repositories?api-version=4.1" 
+   		
+           $ReposResult = Invoke-RestMethod -Uri $uriRepos -Method get -Headers $AzureDevOpsAuthenicationHeader
+   
+           foreach($repoDef in $ReposResult.value){
+               if($repoDef.name.Contains("xxxxx-Android")){
+                 $repoName = $repoDef.name
+                 $branch = $env:BUILD_SOURCEBRANCH -replace 'refs/heads/', ''
+             
+                 if(($repoName -eq $repoDef.name)){
+                   $repoURL = $repoDef.url    
+                   
+                   $searchCriteria = "$" + "top=1"
+                   
+                   $repoCommitsURL = $repoURL+"/commits?itemVersion=GB$branch&searchCriteria.$searchCriteria&api-version=7.1-preview.1"
+                   $repoCommitDetails = Invoke-RestMethod -Uri $repoCommitsURL -Method get -Headers $AzureDevOpsAuthenicationHeader    
+                   
+                   $strVersion = $branch -replace '\D+(\d+)','$1.'
+                   $version = $strVersion.Split("_").Trim('.')[0] 
+                   #write-host $version 
+   
+                   $logText="Android v"+$version+" AWS QA(Azure build drop)."
+             
+                   Clear-Content -Path $(Build.ArtifactStagingDirectory)/releasenotes/changeLog.txt
+                   Add-Content -Path $(Build.ArtifactStagingDirectory)/releasenotes/changeLog.txt -Value ($logText+"`n- "+$repoCommitDetails.value[0].comment) -Force                                                           
+                 }
+               }
+           }
+       }
+   }
+  displayName: 'Get_Lastest_Commit_Msg_AppVersion_and_append_to_file'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: App-Androi-Build'
+  inputs:
+    ArtifactName: 'App-Android-Build'
+  condition: succeededOrFailed()
