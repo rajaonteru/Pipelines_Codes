@@ -26,7 +26,7 @@ steps:
     SourceFolder: '$(agent.builddirectory)'
     Contents: |
      **\*.dacpac
-     **\HLinkDatabase.publish.xml
+     **\XXXXXX.publish.xml
     TargetFolder: '$(build.artifactstagingdirectory)'
     CleanTargetFolder: true
   condition: succeededOrFailed()
@@ -37,4 +37,28 @@ steps:
     PathtoPublish: '$(build.artifactstagingdirectory)'
     ArtifactName: 'XXX_DBProject_Build'
   condition: succeededOrFailed()
+
+      CD
+==========================
+variables:
+  sqlpath: 'D:\SQL\XXX'
+
+steps:
+- task: CopyFiles@2
+  displayName: 'Copy to $(sqlpath)'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)/XXXXXX/s/XXXX/samples/XXXXXX/XXXXXXXXXXXX/release'
+    Contents: |
+     **/*.xml
+     **/*.dacpac
+    TargetFolder: '$(sqlpath)'
+    CleanTargetFolder: true
+
+- task: SqlDacpacDeploymentOnMachineGroup@0
+  displayName: 'Deploy using : dacpac'
+  inputs:
+    DacpacFile: '$(sqlpath)/XXXXXXXX.dacpac'
+    ServerName: 'XXXXXX\XXXXX'
+    DatabaseName: 'XXXXXXX'
+    PublishProfile: '$(sqlpath)/XXXXXXXXXX.publish.xml'
 
