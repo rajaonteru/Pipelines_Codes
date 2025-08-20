@@ -1,0 +1,40 @@
+pool:
+  name: Azure Pipelines
+  demands:
+  - sqlpackage
+  - msbuild
+
+steps:
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.4.1'
+  inputs:
+    versionSpec: 4.4.1
+
+- task: MSBuild@1
+  displayName: XXXDB
+  inputs:
+    solution: XX/XXXXX/XXXXXXXXXXXX/XXXXX/XXXXXXXXXXXXXXXXX.sqlproj
+    msbuildArchitecture: x64
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+    msbuildArguments: ' /p:OutputPath="$(BuildConfiguration)" /p:RunCodeAnalysis=true'
+    clean: true
+
+- task: CopyFiles@2
+  displayName: 'Copy DB files'
+  inputs:
+    SourceFolder: '$(agent.builddirectory)'
+    Contents: |
+     **\*.dacpac
+     **\HLinkDatabase.publish.xml
+    TargetFolder: '$(build.artifactstagingdirectory)'
+    CleanTargetFolder: true
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: XXX_DBProject_Build'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
+    ArtifactName: 'XXX_DBProject_Build'
+  condition: succeededOrFailed()
+
