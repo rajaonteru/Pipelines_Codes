@@ -1,0 +1,20 @@
+As discussed during our call, your application — built on .NET Framework 4.8 — uses Azure DevOps hosted agents (2022) to build and push Docker images to AWS.
+The pipeline started failing on October 15, showing the reported error. After upgrading the application to .NET Framework 4.8.1, the pipeline resumed working successfully.
+
+You wanted to understand what changed in the hosted agent after October 15 that led to the failure with .NET 4.8 and to confirm the root cause.
+
+Root Cause and Scope
+After analysing the shared logs and Azure DevOps backend telemetry, I confirmed that the issue was not related to Azure DevOps or its hosted agents, marking the boundary of our team’s scope.
+
+On deeper investigation of your Docker file, I found that the issue originated from the Docker image used in your container.
+Specifically, on October 14, Microsoft restructured and consolidated the .NET Framework 4.x container images, which directly aligns with the timing of your issue.
+This update caused the observed behaviour and explained why the upgrade to .NET 4.8.1 resolved it.
+
+Preventive Action
+To support your proactive approach, I coordinated with the internal team responsible and identified the official platform where you can stay informed about all past and upcoming Docker-related .NET announcements.
+You can also raise any questions or issues related to these updates directly there, and the respective engineering team will respond.
+
+[microsoft/dotnet-framework-docker · Discussions · GitHub](https://apc01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fgithub.com%2Fmicrosoft%2Fdotnet-framework-docker%2Fdiscussions&data=05%7C02%7Craja.onteru%40cognizant.com%7C60458d0f81ab4f6ec52008de17aac0fb%7Cde08c40719b9427d9fe8edf254300ca7%7C0%7C0%7C638974219526935023%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=1aY3vtzHIgPkBMbp%2FRefLG%2FElVF7cxb3ZOEUjTMWK8Q%3D&reserved=0)
+
+Example Issue:
+[The container operating system does not match the host operating system · Issue #1265 · microsoft/dotnet-framework-docker](https://apc01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fgithub.com%2Fmicrosoft%2Fdotnet-framework-docker%2Fissues%2F1265&data=05%7C02%7Craja.onteru%40cognizant.com%7C60458d0f81ab4f6ec52008de17aac0fb%7Cde08c40719b9427d9fe8edf254300ca7%7C0%7C0%7C638974219526966889%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=o3KPSlK8tX805QIsar1czhAijjOF56MzZSY04BXx5Mk%3D&reserved=0)
